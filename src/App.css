@@ -21,7 +21,8 @@ body {
 
 .upload-area {
   border: 2px dashed #ddd;
-  padding: 20px;
+  padding: 60px;
+  
   text-align: center;
   background-color: #fff;
   cursor: pointer;
@@ -63,6 +64,50 @@ body {
   width: 100%;
   height: 20px;
   margin-top: 10px;
+}
+
+
+.preview-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 20px;
+  border: 1px solid #ddd;
+  margin-bottom: 20px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.preview-card img,
+.preview-card audio,
+.preview-card video {
+  max-width: 100%;
+  max-height: 400px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.convert-button {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.reset-button {
+  background-color: #dc3545;
+  color: #fff;
 }
 
 /* Additional styling can be added as needed */
