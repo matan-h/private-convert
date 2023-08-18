@@ -110,4 +110,54 @@ body {
   color: #fff;
 }
 
-/* Additional styling can be added as needed */
+.file-switcher {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.file-switcher-label {
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #888;
+}
+
+.file-switcher-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.file-switcher-button {
+  padding: 5px 8px;
+  border: none;
+  background-color: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.file-switcher-button.active {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+
+.convert-dropdown {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.convert-dropdown label {
+  font-size: 14px;
+  margin-right: 10px;
+}
