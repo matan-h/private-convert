@@ -1,6 +1,5 @@
 import { FFmpeg as FFmpegCore } from "@ffmpeg/ffmpeg";
 import { toBlobURL, fetchFile } from "@ffmpeg/util";
-import { ReversedFileMimeType } from "./FileMemeType";
 
 async function debug_URL(s:string,_:string){return s}
 class ffmpegCls {
@@ -18,7 +17,9 @@ class ffmpegCls {
    * Load the FFmpeg library.
    */
   async load(): Promise<void> {
+    
     const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.2/dist/umd";
+    // const baseURL = document.location.host.replace("localhost:","http://127.0.0.1:")+"/ffmpeg-umd"; // for debug // TODO: make that works offline
 
     this.ffmpeg.on("log", ({ message }:any) => { // TODO : proper logging setup in app.tsx
       console.log(message);
@@ -38,7 +39,7 @@ class ffmpegCls {
       workerURL:await toBlobURL(
         `${baseURL}/ffmpeg-core.worker.js`,"text/javascript"
       ),
-      //thread:false // for now, without threds.
+      //thread:false // for now, without threads.
   });
   this.loaded = true;
 
@@ -50,7 +51,7 @@ class ffmpegCls {
    * @param args - Array of FFmpeg arguments.
    * @returns Blob URL of the output.
    */
-  async exec(inputFileName:string,inputFileType:string,inputBlob: string,outputFile:string, args: string[],finish_callback:Function): Promise<Blob> {
+  async exec(inputFileName:string,OutputMimeType:string,inputBlob: string,outputFile:string, args: string[],finish_callback:Function): Promise<Blob> {
     if (!this.loaded) {
       throw new Error("FFmpeg not loaded yet. Call the 'load' method.");
     }
@@ -59,9 +60,7 @@ class ffmpegCls {
     await this.ffmpeg.exec(["-i", inputFileName, ...args, outputFile]);
 
     const data = await this.ffmpeg.readFile(outputFile);
-    const fileext = outputFile.split(".").pop()||"mp4"
-    const mimetype = ReversedFileMimeType[fileext as keyof typeof ReversedFileMimeType] // ||inputFileType
-    const blob = new Blob([data],{type:mimetype});
+    const blob = new Blob([data],{type:OutputMimeType});
     finish_callback();
     return blob
     // debugger;

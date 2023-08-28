@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import "./App.css";
-import { getConvertOptions } from "./convertOptions";
-// import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile } from "@ffmpeg/util";
 import ffmpegCls from "./FFmpegCls";
-import { ConvertOptions } from "./convertOptionsFull";
+import { ConvertOptions, getByMimeType } from "./convertOptionsFull";
+import { JSX } from "react/jsx-runtime";
 
 enum Screen {
   UPLOAD,
@@ -17,14 +15,11 @@ enum Screen {
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.UPLOAD);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [convertedFile, setConvertedFile] = useState<File | null>(null);
   const [conversionProgress, setConversionProgress] = useState<number>(0);
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
   const [ffmpegInstance, setFFmpegInstance] = useState<ffmpegCls | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<string>("error");
   const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
-
-  // const [ffmpegArguments, setFFmpegArguments] = useState<FFmpegArguments | null>(null); // TODO : make ffmpeg options customizeable
+  const convertDropdown = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
     const initFFmpeg = async () => {
@@ -47,7 +42,6 @@ const App: React.FC = () => {
 
   const ProgressFinished = () => {
     setCurrentScreen(Screen.CONVERTED);
-    setConvertedFile(selectedFiles[0] || null);
   };
 
   const handleConvert = async () => {
@@ -55,22 +49,30 @@ const App: React.FC = () => {
     if (ffmpegInstance) {
       for (const inputFile of selectedFiles) {
         const inputFilePath = URL.createObjectURL(inputFile);
-        const outputFilePath = `output.${selectedFormat}`;
+        const outputFilePath = `output.${
+          convertDropdown.current!.selectedOptions[0].value
+        }`;
         interface progressOBJ {
           progress: number;
           time: number;
         }
         const onProgress = function onProgress(progress_obj: progressOBJ) {
           const progress = progress_obj.progress * 100;
-          console.log("progress after:", progress);
-          setConversionProgress(progress);
+          console.log("ffmpeg.wasm::progress:", progress);
+          if (currentScreen === Screen.CONVERTING) {
+            setConversionProgress(progress); // only rerender if there is progressbar
+          }
         };
         ffmpegInstance.on("progress", onProgress);
-        // const args = generateFFmpegArguments(inputFilePath, outputFilePath); // TODO : customizeable FFmpegArguments
+        // const args = generateFFmpegArguments(inputFilePath, outputFilePath); // TODO : customizable FFmpegArguments
+        const mimetype: string =
+          ConvertOptions[convertDropdown.current!.selectedOptions[0].value]
+            .mimetype;
         setOutputBlob(
           await ffmpegInstance.exec(
             inputFile.name,
-            inputFile.type,
+            mimetype,
+
             inputFilePath,
             outputFilePath,
             [],
@@ -79,24 +81,9 @@ const App: React.FC = () => {
         );
       }
     }
-
-    simulateConversion();
   };
 
-  const simulateConversion = () => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setConversionProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        setCurrentScreen(Screen.CONVERTED);
-        setConvertedFile(selectedFiles[0] || null); // that again is just a simulate
-      }
-    }, 500);
-  };
   const renderPreview = (file: string | null, type: string) => {
-    // URL.createObjectURL(file),file.type
     if (!file) {
       return null;
     }
@@ -119,7 +106,6 @@ const App: React.FC = () => {
 
   const handleReset = () => {
     setSelectedFiles([]);
-    setConvertedFile(null);
     setConversionProgress(0);
     setCurrentScreen(Screen.UPLOAD);
   };
@@ -139,29 +125,39 @@ const App: React.FC = () => {
         );
 
       case Screen.PREVIEW:
-        console.log("AAAuploadedFileTypes",selectedFiles)
         const uploadedFileTypes = selectedFiles.map((file) => file.type);
-        console.log("BEFOREuploadedFileTypes",uploadedFileTypes,"||","most(uploadedFileTypes)",most(uploadedFileTypes.slice()))
-        const fileConvertOptions =ConvertOptions[most(uploadedFileTypes.slice()) || ""]||null; // FIXME: most of the file types is mimetype not extention
-        console.log("AFTERuploadedFileTypes",uploadedFileTypes,"||","most(uploadedFileTypes)",most(uploadedFileTypes.slice()))
-        var options = [];
-        if (fileConvertOptions){
-        for (const key in fileConvertOptions.optional_convert_routes) {
-          let value = fileConvertOptions.optional_convert_routes[key];
-          let full_value = ConvertOptions[key]
-          options.push(<option value={value} key={key}>{full_value.full_string}</option>) 
-        }
-        
-          // (Object.entries(fileConvertOptions)).map((option, index) => (
-            //   <option key={index} value={option.value}>
-            //     {option.label}
-            //   </option>
-            // ))}
+        const uploadedFileExt = most(
+          selectedFiles.map((file) => file.name.split(".").pop() || "")
+        );
+        var fileConvertOptions =
+          getByMimeType(
+            most(uploadedFileTypes.slice()) || "",
+            uploadedFileExt
+          ) || null;
+        var options: JSX.Element[] = [];
+        var top_option = undefined; // TODO : select the top option
+        var top_counter = 0;
 
-          
-        }
-        else{
-          options = [<option value="error">error</option>]
+        if (fileConvertOptions) {
+          console.log(fileConvertOptions.optional_convert_routes);
+          for (const key in fileConvertOptions.optional_convert_routes) {
+            if (key === uploadedFileExt) {
+              continue; // do not display the option to convert format to itself
+            }
+
+            let full_value = ConvertOptions[key];
+            if (full_value.useful > top_counter) {
+              top_counter = full_value.useful;
+              top_option = key;
+            }
+            options.push(
+              <option value={key} key={key}>
+                {key} ({full_value.full_string})
+              </option>
+            );
+          }
+        } else {
+          options = [<option value="error">error</option>];
         }
 
         return (
@@ -194,12 +190,7 @@ const App: React.FC = () => {
             )}
             <div className="convert-dropdown">
               <label htmlFor="convertTo">Convert to:</label>
-              <select
-                id="convertTo"
-                className="dropdown"
-                onChange={(e) => setSelectedFormat(e.target.value)}
-                value={selectedFormat}
-              >
+              <select id="convertTo" className="dropdown" ref={convertDropdown} defaultValue={top_option}>
                 {options}
               </select>
             </div>
@@ -240,6 +231,7 @@ const App: React.FC = () => {
         }
         // TODO: why the preview reloading 5 times with different blob links ?
         const outputURI = URL.createObjectURL(outputBlob);
+        console.log("get URI:", outputURI);
         return (
           <div className="content">
             {/* Display preview card */}
