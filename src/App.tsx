@@ -190,7 +190,12 @@ const App: React.FC = () => {
             )}
             <div className="convert-dropdown">
               <label htmlFor="convertTo">Convert to:</label>
-              <select id="convertTo" className="dropdown" ref={convertDropdown} defaultValue={top_option}>
+              <select
+                id="convertTo"
+                className="dropdown"
+                ref={convertDropdown}
+                defaultValue={top_option}
+              >
                 {options}
               </select>
             </div>
