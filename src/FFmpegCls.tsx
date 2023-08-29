@@ -21,8 +21,8 @@ class ffmpegCls {
     const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.2/dist/umd";
     // const baseURL = document.location.host.replace("localhost:","http://127.0.0.1:")+"/ffmpeg-umd"; // for debug // TODO: make that works offline
 
-    this.ffmpeg.on("log", ({ message }:any) => { // TODO : proper logging setup in app.tsx
-      console.log(message);
+    this.ffmpeg.on("log", ({ message,type }:any) => { // TODO : proper logging setup in app.tsx
+      console.log(`[${type}]:${message}`);
     });
       // toBlobURL is used to bypass CORS issue, urls with the same
       // domain can be used directly.
@@ -57,7 +57,10 @@ class ffmpegCls {
     }
 
     await this.ffmpeg.writeFile(inputFileName, await fetchFile(inputBlob));
-    await this.ffmpeg.exec(["-i", inputFileName, ...args, outputFile]);
+
+    const commandList = ["-i", inputFileName, ...args, outputFile].filter(el=>(el!=='')) // remove empty strings
+    console.log(`running ffmpeg command [${commandList}]`)
+    await this.ffmpeg.exec(commandList);
 
     const data = await this.ffmpeg.readFile(outputFile);
     const blob = new Blob([data],{type:OutputMimeType});
