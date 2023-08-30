@@ -1,6 +1,5 @@
 import { FFmpeg as FFmpegCore } from "@ffmpeg/ffmpeg";
 import { toBlobURL, fetchFile } from "@ffmpeg/util";
-
 class ffmpegCls {
   private ffmpeg: FFmpegCore;
   private loaded: boolean;
@@ -17,10 +16,9 @@ class ffmpegCls {
    */
   async load(): Promise<void> {
     
-    const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.2/dist/umd";
     // const baseURL = document.location.host.replace("localhost:","http://127.0.0.1:")+"/ffmpeg-umd"; // for debug // TODO: make that works offline
-
-    this.ffmpeg.on("log", ({ message,type }:any) => { // TODO : proper logging setup in app.tsx
+    // console.log("demo-getFFmpegWasmURL:",await getFFmpegWasmURL())
+    this.ffmpeg.on("log", ({ message,type }:any) => {
       console.log(`[${type}]:${message}`);
     });
       // toBlobURL is used to bypass CORS issue, urls with the same
@@ -28,17 +26,16 @@ class ffmpegCls {
 
     await this.ffmpeg.load({
       coreURL: await toBlobURL(
-          `${baseURL}/ffmpeg-core.js`,
+          `/js/ffmpeg-core.js`,
           "text/javascript",
       ),
       wasmURL: await toBlobURL(
-          `${baseURL}/ffmpeg-core.wasm`,
-          "application/wasm",
-      ),
+        `/js/ffmpeg-core.wasm`,
+        "application/wasm",
+    ),
       workerURL:await toBlobURL(
-        `${baseURL}/ffmpeg-core.worker.js`,"text/javascript"
+        `/js/ffmpeg-core.worker.js`,"text/javascript"
       ),
-      //thread:false // for now, without threads.
   });
   this.loaded = true;
 
@@ -58,6 +55,7 @@ class ffmpegCls {
     await this.ffmpeg.writeFile(inputFileName, await fetchFile(inputBlob));
 
     const commandList = ["-hide_banner","-i", inputFileName, ...args, outputFile].filter(el=>(el!=='')) // remove empty strings
+    // TODO : hide banner when loading ffmpeg.wasm from memory
     console.log(`running ffmpeg command [${commandList}]`)
     await this.ffmpeg.exec(commandList);
 
