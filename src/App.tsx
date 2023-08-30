@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import "./App.css";
-import ffmpegCls from "./FFmpegCls";
-import { ConvertOptions, getByMimeType } from "./convertOptionsFull";
+import ffmpegCls from "./utils/FFmpegCls";
+import { ConvertOptions, getByMimeType } from "./utils/convertOptionsFull";
 import { JSX } from "react/jsx-runtime";
+import DotProgressBar from "./components/DotProgressBar";
+import PreviewComponent from "./components/previewCard";
 
 enum Screen {
     UPLOAD,
@@ -17,10 +19,11 @@ const App: React.FC = () => {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [conversionProgress, setConversionProgress] = useState<number>(0);
     const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
+    const [currentConvertingFileIndex, setCurrentConvertingFileIndex] = useState<number>(0);
     const [ffmpegInstance, setFFmpegInstance] = useState<ffmpegCls | null>(
         null
     );
-    const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
+    const [outputFiles, setOutputFiles] = useState<File[]>([]);
     const convertDropdown = useRef<HTMLSelectElement>(null);
 
     useEffect(() => {
@@ -42,48 +45,52 @@ const App: React.FC = () => {
         onDrop: handleFileUpload,
     });
 
-    const ProgressFinished = () => {
-        setCurrentScreen(Screen.CONVERTED);
-    };
-
     const handleConvert = async () => {
         setCurrentScreen(Screen.CONVERTING);
+        console.log(`resetting outputFiles from [${outputFiles}] to []`)
+        setOutputFiles([]);
         if (ffmpegInstance) {
-            const outputFilePath = `output.${
-                // TODO : use the same filename at download and here
-                convertDropdown.current!.selectedOptions[0].value
-            }`; // TODO : make the multiple files work
-            for (const inputFile of selectedFiles) {
+            const output_ext = convertDropdown.current!.selectedOptions[0].value
+            // TODO : make the multiple files work
+            interface progressOBJ {
+                progress: number;
+                time: number;
+            }
+            
+            const onProgress = function onProgress(
+                progress_obj: progressOBJ
+            ) {
+                const progress = progress_obj.progress * 100;
+                console.log("ffmpeg.wasm::progress:", progress);
+                setConversionProgress(progress);
+            };
+            ffmpegInstance.on("progress", onProgress);
+            const mimetype: string =
+                ConvertOptions[
+                    output_ext
+                ].mimetype;
+            const newOutputFiles = [];
+            for (const [i,inputFile] of selectedFiles.entries()) {
+                const outputFilePath = `output${i}.${output_ext}`; // TODO : use the same filename at download and here
+
+                setCurrentConvertingFileIndex(i)
+                setConversionProgress(0) // always start with 0
                 const inputFilePath = URL.createObjectURL(inputFile);
-                interface progressOBJ {
-                    progress: number;
-                    time: number;
-                }
-                const onProgress = function onProgress(
-                    progress_obj: progressOBJ
-                ) {
-                    const progress = progress_obj.progress * 100;
-                    console.log("ffmpeg.wasm::progress:", progress);
-                    setConversionProgress(progress);
-                };
-                ffmpegInstance.on("progress", onProgress);
-                // const args = generateFFmpegArguments(inputFilePath, outputFilePath); // TODO : customizable FFmpegArguments
-                const mimetype: string =
-                    ConvertOptions[
-                        convertDropdown.current!.selectedOptions[0].value
-                    ].mimetype;
-                setOutputBlob(
-                    await ffmpegInstance.exec(
+                const outFile =await ffmpegInstance.exec(
                         inputFile.name,
                         mimetype,
 
                         inputFilePath,
                         outputFilePath,
-                        [],
-                        ProgressFinished
+                        [] // TODO: use the ffmpeg arguments
                     )
-                );
+                    newOutputFiles.push(outFile)
             }
+            setOutputFiles(newOutputFiles)
+            setCurrentScreen(Screen.CONVERTED);
+        }
+        else{
+            alert("an fatal error happened: no ffmpeg instance found")
         }
     };
 
@@ -171,39 +178,7 @@ const App: React.FC = () => {
                 return (
                     <div className="content">
                         {/* Display preview card */}
-                        <div className="preview-card">
-                            {renderPreview(
-                                URL.createObjectURL(
-                                    selectedFiles[currentFileIndex]
-                                ),
-                                selectedFiles[currentFileIndex].type
-                            )}
-                        </div>
-
-                        {selectedFiles.length > 1 && (
-                            <div className="file-switcher">
-                                <p className="file-switcher-label">
-                                    Switch File Preview:
-                                </p>
-                                <div className="file-switcher-buttons">
-                                    {selectedFiles.map((file, index) => (
-                                        <button
-                                            key={index}
-                                            className={`file-switcher-button ${
-                                                currentFileIndex === index
-                                                    ? "active"
-                                                    : ""
-                                            }`}
-                                            onClick={() =>
-                                                setCurrentFileIndex(index)
-                                            }
-                                        >
-                                            {trimFileName(file.name)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        {PreviewComponent(selectedFiles,currentFileIndex,setCurrentFileIndex)}
                         <div className="convert-dropdown">
                             <label htmlFor="convertTo">Convert to:</label>
                             <select
@@ -236,7 +211,15 @@ const App: React.FC = () => {
             case Screen.CONVERTING:
                 return (
                     <div className="content">
-                        <p>Converting...</p>
+                        <p>Converting... {selectedFiles.length>1 && <span>({currentConvertingFileIndex+1} of {selectedFiles.length})</span>}</p>
+                        {selectedFiles.length > 1 && (
+                            <><p>
+                                Converting file <code>{selectedFiles[currentConvertingFileIndex].name}</code>
+                            </p><DotProgressBar progress={currentConvertingFileIndex+1} totalFiles={selectedFiles.length}></DotProgressBar>
+                            
+                            </>
+
+                        )}
                         <progress
                             className="progress-bar"
                             value={conversionProgress}
@@ -246,26 +229,29 @@ const App: React.FC = () => {
                 );
 
             case Screen.CONVERTED:
-                if (!outputBlob) {
-                    alert("no output from ffmpeg. check logs");
+                if (!(outputFiles.length)) { // if is not empty
+                    alert("no output from ffmpeg. check logs");debugger;
                     return;
                 }
-                const outputURI = URL.createObjectURL(outputBlob);
+                
+                const outputURI = URL.createObjectURL(outputFiles[0]);
                 console.log("get URI:", outputURI);
+                console.log("output Files:",outputFiles,currentFileIndex);
                 return (
                     <div className="content">
                         {/* Display preview card */}
-                        <div className="preview-card">
-                            {renderPreview(outputURI, outputBlob.type)}
-                        </div>
+                        {/* <div className="preview-card">
+                            {renderPreview(URL.createObjectURL(outputFiles[currentFileIndex]), outputFiles[currentFileIndex].type)}
+                        </div> */}
+                        {PreviewComponent(outputFiles,currentFileIndex,setCurrentFileIndex)}
                         {/* TODO: ConvertedFile should move to OutputBlob ....*/}
 
                         <a
-                            className="action-button convert-button"
-                            download
+                            className="action-button convert-button download-button"
+                            download // TODO download=filename.{ext} or converted-to-{ext}.zip
                             href={outputURI}
                         >
-                            Download
+                            Download {(outputFiles.length > 1 && <>(zip)</>)}
                         </a>
                     </div>
                 );
