@@ -1,7 +1,6 @@
 import { FFmpeg as FFmpegCore } from "@ffmpeg/ffmpeg";
 import { toBlobURL, fetchFile } from "@ffmpeg/util";
 
-async function debug_URL(s:string,_:string){return s}
 class ffmpegCls {
   private ffmpeg: FFmpegCore;
   private loaded: boolean;
@@ -58,7 +57,7 @@ class ffmpegCls {
 
     await this.ffmpeg.writeFile(inputFileName, await fetchFile(inputBlob));
 
-    const commandList = ["-i", inputFileName, ...args, outputFile].filter(el=>(el!=='')) // remove empty strings
+    const commandList = ["-hide_banner","-i", inputFileName, ...args, outputFile].filter(el=>(el!=='')) // remove empty strings
     console.log(`running ffmpeg command [${commandList}]`)
     await this.ffmpeg.exec(commandList);
 

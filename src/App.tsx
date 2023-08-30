@@ -8,6 +8,7 @@ import DotProgressBar from "./components/DotProgressBar";
 import PreviewComponent from "./components/previewCard";
 import { createZipFile } from "./utils/ZipCreator";
 import StickyButton from "./components/StickyButton";
+import LogsView from "./components/LogsView";
 
 enum Screen {
     UPLOAD,
@@ -30,6 +31,8 @@ const App: React.FC = () => {
     const convertDropdown = useRef<HTMLSelectElement>(null);
     const [outputURI, setOutputURI] = useState<string>("");
 
+    const [logs, setLogs] = useState<string[]>([]);
+    const [showLogs, setShowLogs] = useState(false);
 
     useEffect(() => {
         const initFFmpeg = async () => {
@@ -64,11 +67,16 @@ const App: React.FC = () => {
             }
 
             const onProgress = function onProgress(progress_obj: progressOBJ) {
+                if (progress_obj.progress > 1000){return} // sometimes happend to ffmpeg.wasm
                 const progress = progress_obj.progress * 100;
                 console.log("ffmpeg.wasm::progress:", progress);
                 setConversionProgress(progress);
             };
             ffmpegInstance.on("progress", onProgress);
+            ffmpegInstance.on("log", ({ message,type }:any) => { // TODO : proper logging setup in app.tsx
+                console.log(`[${type}]:${message}`);
+                setLogs(prevlogs=>[...prevlogs,message])
+              });
             const mimetype: string = ConvertOptions[output_ext].mimetype;
             const newOutputFiles = [];
             for (const [i, inputFile] of selectedFiles.entries()) {
@@ -161,8 +169,6 @@ const App: React.FC = () => {
 
                 return (
                     <div className="content">
-                        <StickyButton onClick={()=>alert("no convertion in progress")} />
-                        {/* TODO : show empty logs here  */}
                         {PreviewComponent(
                             selectedFiles,
                             currentFileIndex,
@@ -200,7 +206,8 @@ const App: React.FC = () => {
             case Screen.CONVERTING:
                 return (
                     <>
-                    <StickyButton onClick={() => alert("hi")} /><div className="content">
+                    <StickyButton onClick={() => setShowLogs(true)} /><div className="content">
+                    {showLogs && <LogsView logs={logs} onClose={()=>setShowLogs(false)} />}
 
                         <p>
                             Converting...{" "}
@@ -269,8 +276,10 @@ const App: React.FC = () => {
                         <>Download {outputFiles.length > 1 && <>(zip)</>}</>
                     );
                 }
-                debugger;
                 return (
+                    <>
+                    <StickyButton onClick={() => setShowLogs(true)} />
+                    {showLogs && <LogsView logs={logs} onClose={()=>setShowLogs(false)} />}
                     <div className="content">
                         {PreviewComponent(
                             outputFiles,
@@ -281,11 +290,11 @@ const App: React.FC = () => {
                         <a
                             className="action-button convert-button download-button"
                             download={download_filename}
-                            href={outputURI || singleURI}
+                            href={(outputURI || singleURI)+"#"+download_filename}
                         >
                             {download_btn_text}
                         </a>
-                    </div>
+                    </div></>
                 );
 
             default:

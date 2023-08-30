@@ -8,7 +8,7 @@ interface StickyButtonProps {
 const StickyButton: React.FC<StickyButtonProps> = ({ onClick }) => {
   return (
     <button className="sticky-button" onClick={onClick}>
-      <img src="/path/to/logs-icon.png" alt="Logs" />
+      <img src="/images/logs-icon.svg" alt="Logs" /> Logs
     </button>
   );
 };

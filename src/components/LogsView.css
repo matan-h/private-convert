@@ -34,3 +34,26 @@
   margin: 0;
   padding: 2px 0;
 }
+
+.close-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  margin-right: 10px;
+}
+
+.close-button:hover {
+  background-color: #e57373;
+}
+
+.close-button:focus {
+  outline: none;
+}
+.ffend{
+  color:green
+}
