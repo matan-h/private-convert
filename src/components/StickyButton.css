@@ -1,0 +1,31 @@
+.sticky-button {
+    position: fixed;
+    top: 20px;
+    left: 20px; /* Updated to move the button to the top left */
+    background-color: #ffffff;
+    border: 2px solid #007bff;
+    border-radius: 25px;
+    padding: 8px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  .sticky-button:hover {
+    background-color: #007bff;
+    color: #ffffff;
+  }
+  
+  .sticky-button img {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+  
+  .sticky-button span {
+    font-size: 14px;
+  }
+  
