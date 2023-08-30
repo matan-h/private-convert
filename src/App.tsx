@@ -60,7 +60,6 @@ const App: React.FC = () => {
         if (ffmpegInstance) {
             const output_ext =
                 convertDropdown.current!.selectedOptions[0].value;
-            // TODO : make the multiple files work
             interface progressOBJ {
                 progress: number;
                 time: number;
@@ -73,7 +72,7 @@ const App: React.FC = () => {
                 setConversionProgress(progress);
             };
             ffmpegInstance.on("progress", onProgress);
-            ffmpegInstance.on("log", ({ message,type }:any) => { // TODO : proper logging setup in app.tsx
+            ffmpegInstance.on("log", ({ message,type }:any) => {
                 console.log(`[${type}]:${message}`);
                 setLogs(prevlogs=>[...prevlogs,message])
               });
@@ -142,7 +141,7 @@ const App: React.FC = () => {
                         uploadedFileExt
                     ) || null;
                 var options: JSX.Element[] = [];
-                var top_option = undefined; // TODO : select the top option
+                var top_option = undefined;
                 var top_counter = 0;
 
                 if (fileConvertOptions) {

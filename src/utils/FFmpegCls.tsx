@@ -15,14 +15,8 @@ class ffmpegCls {
    * Load the FFmpeg library.
    */
   async load(): Promise<void> {
-    
-    // const baseURL = document.location.host.replace("localhost:","http://127.0.0.1:")+"/ffmpeg-umd"; // for debug // TODO: make that works offline
-    // console.log("demo-getFFmpegWasmURL:",await getFFmpegWasmURL())
-    this.ffmpeg.on("log", ({ message,type }:any) => {
-      console.log(`[${type}]:${message}`);
-    });
-      // toBlobURL is used to bypass CORS issue, urls with the same
-      // domain can be used directly.
+      // the documention say "toBlobURL is used to bypass CORS issue, urls with the same
+      // domain can be used directly.", but ffmpeg.wasm crash without toBlobURL for some reason
 
     await this.ffmpeg.load({
       coreURL: await toBlobURL(
@@ -55,7 +49,6 @@ class ffmpegCls {
     await this.ffmpeg.writeFile(inputFileName, await fetchFile(inputBlob));
 
     const commandList = ["-hide_banner","-i", inputFileName, ...args, outputFile].filter(el=>(el!=='')) // remove empty strings
-    // TODO : hide banner when loading ffmpeg.wasm from memory
     console.log(`running ffmpeg command [${commandList}]`)
     await this.ffmpeg.exec(commandList);
 
