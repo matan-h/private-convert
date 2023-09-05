@@ -49,7 +49,7 @@ const App: React.FC = () => {
     };
 
     const { getRootProps, getInputProps } = useDropzone({
-        accept: { "image/gif": [], "video/*": [], "audio/*": [] }, // You can change the accepted file types
+        accept: { "image/gif": [], "video/*": [], "audio/*": [] },
         onDrop: handleFileUpload,
     });
 
@@ -78,6 +78,10 @@ const App: React.FC = () => {
               });
             const mimetype: string = ConvertOptions[output_ext].mimetype;
             const newOutputFiles = [];
+            const verifyFFmpegWorking = ()=>{
+                if (conversionProgress===0){alert("ffmpeg not returning any progress in 6 scounds. maybe your browser kill it")}
+            }
+
             for (const [i, inputFile] of selectedFiles.entries()) {
                 const output_fname =
                     inputFile.name.substring(
@@ -89,6 +93,7 @@ const App: React.FC = () => {
                 setCurrentConvertingFileIndex(i);
                 setConversionProgress(0); // always start with 0
                 const inputFilePath = URL.createObjectURL(inputFile);
+                var it = setTimeout(verifyFFmpegWorking,8000) // 8 seconds after exec should be enough for FFmpeg to start
                 const outFile = await ffmpegInstance.exec(
                     inputFile.name,
                     mimetype,
@@ -97,6 +102,7 @@ const App: React.FC = () => {
                     outputFilePath,
                     [] // TODO: use the ffmpeg arguments
                 );
+                clearTimeout(it)
                 newOutputFiles.push(outFile);
             }
             setOutputFiles(newOutputFiles);
@@ -152,6 +158,9 @@ const App: React.FC = () => {
                         }
 
                         let full_value = ConvertOptions[key];
+                        if (!full_value){ // is a convertion option but not a convert-to option. skip it for now
+                            continue
+                        }
                         if (full_value.useful > top_counter) {
                             top_counter = full_value.useful;
                             top_option = key;
@@ -164,6 +173,7 @@ const App: React.FC = () => {
                     }
                 } else {
                     options = [<option value="error">error</option>];
+                    console.error("cannot find options for this format.",most(uploadedFileTypes.slice()) || "")
                 }
 
                 return (

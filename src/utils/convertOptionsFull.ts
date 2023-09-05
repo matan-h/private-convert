@@ -113,10 +113,17 @@ export const ConvertOptions: ConvertOptionsType = {
   },
   wav: {
     extension: "wav",
-    mimetype: "audio/wav",
+    mimetype: "audio/x-wav",
     full_string: "WAV Audio",
     optional_convert_routes: normalAudioRoutes,
     useful: 0.3,
+  },
+  acc:{
+    extension:"aac",
+    mimetype:"audio/x-aac",
+    full_string:"Advanced Audio Coding",
+    optional_convert_routes:normalAudioRoutes,
+    useful:0.15
   },
   // -- image
   png: {
