@@ -33,6 +33,7 @@ const App: React.FC = () => {
 
     const [logs, setLogs] = useState<string[]>([]);
     const [showLogs, setShowLogs] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const initFFmpeg = async () => {
@@ -79,7 +80,7 @@ const App: React.FC = () => {
             const mimetype: string = ConvertOptions[output_ext].mimetype;
             const newOutputFiles = [];
             const verifyFFmpegWorking = ()=>{
-                if (conversionProgress===0){alert("ffmpeg not returning any progress in 6 scounds. maybe your browser kill it")}
+                if (conversionProgress===0){const s=("ffmpeg not returning any progress in 6 scounds. maybe your browser kill it");alert(s);setErrorMessage(s)}
             }
 
             for (const [i, inputFile] of selectedFiles.entries()) {
@@ -108,7 +109,9 @@ const App: React.FC = () => {
             setOutputFiles(newOutputFiles);
             setCurrentScreen(Screen.CONVERTED);
         } else {
-            alert("an fatal error happened: no ffmpeg instance found");
+            const err = "an fatal error happened: no ffmpeg instance found";
+            alert(err);
+            setErrorMessage(err);
         }
     };
 
@@ -245,14 +248,15 @@ const App: React.FC = () => {
                             className="progress-bar"
                             value={conversionProgress}
                             max={100} />
-                    </div></>
+                    {errorMessage && <blockquote className="error-message"><p>{errorMessage}</p></blockquote>}
+                    </div>
+                    </>
                 );
 
             case Screen.CONVERTED:
                 if (!outputFiles.length) {
                     // if is not empty
                     alert("no output from ffmpeg. check logs");
-                    debugger;
                     return;
                 }
                 var singleURI: string = "";
