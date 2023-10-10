@@ -148,12 +148,21 @@ function copyWith(
 ): ConvertRoutes {
   return { ...mp4VideoConvertRoutes, ...with_json };
 }
+function searchByMimeType(mimetype: string,){
+  return  Object.values(ConvertOptions).find(
+    (format) => format.mimetype === mimetype
+  );
+}
 export function getByMimeType(
   mimetype: string,
   ext?: string
 ): ConvertOption | undefined {
-  const format = Object.values(ConvertOptions).find(
-    (format) => format.mimetype === mimetype
-  );
+  var format;
+  format = searchByMimeType(mimetype)
+  if (format===undefined){ // try without x-
+    format = searchByMimeType(mimetype.replace("x-",""))
+    
+
+  }
   return format;
 }

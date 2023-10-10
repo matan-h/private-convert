@@ -29,6 +29,7 @@ const App: React.FC = () => {
     );
     const [outputFiles, setOutputFiles] = useState<File[]>([]);
     const convertDropdown = useRef<HTMLSelectElement>(null);
+    const ProgressBarRef = useRef<HTMLProgressElement>(null);
     const [outputURI, setOutputURI] = useState<string>("");
 
     const [logs, setLogs] = useState<string[]>([]);
@@ -41,16 +42,23 @@ const App: React.FC = () => {
             await instance.load();
             setFFmpegInstance(instance);
         };
-        initFFmpeg();
+        try {
+            initFFmpeg();
+        }
+        catch (e) {
+            setErrorMessage(String(e))
+            alert(e)
+        }
     }, []);
 
     const handleFileUpload = (acceptedFiles: File[]) => {
         setSelectedFiles(acceptedFiles);
-        setCurrentScreen(Screen.PREVIEW);
+        setTimeout(() => setCurrentScreen(Screen.PREVIEW), 4000)
+        // setCurrentScreen(Screen.PREVIEW);
     };
 
     const { getRootProps, getInputProps } = useDropzone({
-        accept: { "image/gif": [], "video/*": [], "audio/*": [] },
+        accept: { "image/gif": [], "video/*": [], "audio/*": [],"image/*":[] },
         onDrop: handleFileUpload,
     });
 
@@ -67,20 +75,20 @@ const App: React.FC = () => {
             }
 
             const onProgress = function onProgress(progress_obj: progressOBJ) {
-                if (progress_obj.progress > 1000){return} // sometimes happend to ffmpeg.wasm
+                if (progress_obj.progress > 1000) { return } // sometimes happend to ffmpeg.wasm
                 const progress = progress_obj.progress * 100;
                 console.log("ffmpeg.wasm::progress:", progress);
                 setConversionProgress(progress);
             };
             ffmpegInstance.on("progress", onProgress);
-            ffmpegInstance.on("log", ({ message,type }:any) => {
+            ffmpegInstance.on("log", ({ message, type }: any) => {
                 console.log(`[${type}]:${message}`);
-                setLogs(prevlogs=>[...prevlogs,message])
-              });
-            const mimetype: string = ConvertOptions[output_ext].mimetype;
+                setLogs(prevlogs => [...prevlogs, message])
+            });
+            const mimetype: string = ConvertOptions[output_ext].mimetype; // the first in the list is the default
             const newOutputFiles = [];
-            const verifyFFmpegWorking = ()=>{
-                if (conversionProgress===0){const s=("ffmpeg not returning any progress in 6 scounds. maybe your browser kill it");alert(s);setErrorMessage(s)}
+            const verifyFFmpegWorking = () => { // we cannot use progress value here since react save the state, so it always be zero
+                if (ProgressBarRef.current?.value === 0) { const s = ("ffmpeg not returning any progress in 6 seconds. maybe your browser kill it"); alert(s); setErrorMessage(s) }
             }
 
             for (const [i, inputFile] of selectedFiles.entries()) {
@@ -94,15 +102,22 @@ const App: React.FC = () => {
                 setCurrentConvertingFileIndex(i);
                 setConversionProgress(0); // always start with 0
                 const inputFilePath = URL.createObjectURL(inputFile);
-                var it = setTimeout(verifyFFmpegWorking,8000) // 8 seconds after exec should be enough for FFmpeg to start
-                const outFile = await ffmpegInstance.exec(
-                    inputFile.name,
-                    mimetype,
+                var it = setTimeout(verifyFFmpegWorking, 8000) // 8 seconds after exec should be enough for FFmpeg to start
+                var outFile: File;
+                try {
+                    outFile = await ffmpegInstance.exec(
+                        inputFile.name,
+                        mimetype,
 
-                    inputFilePath,
-                    outputFilePath,
-                    [] // TODO: use the ffmpeg arguments
-                );
+                        inputFilePath,
+                        outputFilePath,
+                        [] // TODO: use the ffmpeg arguments
+                    );
+                }
+                catch (e) {
+                    setErrorMessage("ffmpeg FileSystem error: look at the logs, or at the convertion process (Make sure that it makes sense.)")
+                    continue;
+                }
                 clearTimeout(it)
                 newOutputFiles.push(outFile);
             }
@@ -136,6 +151,8 @@ const App: React.FC = () => {
                 );
 
             case Screen.PREVIEW:
+                console.log(selectedFiles);
+
                 const uploadedFileTypes = selectedFiles.map(
                     (file) => file.type
                 );
@@ -161,7 +178,7 @@ const App: React.FC = () => {
                         }
 
                         let full_value = ConvertOptions[key];
-                        if (!full_value){ // is a convertion option but not a convert-to option. skip it for now
+                        if (!full_value) { // is a convertion option but not a convert-to option. skip it for now
                             continue
                         }
                         if (full_value.useful > top_counter) {
@@ -176,7 +193,17 @@ const App: React.FC = () => {
                     }
                 } else {
                     options = [<option value="error">error</option>];
-                    console.error("cannot find options for this format.",most(uploadedFileTypes.slice()) || "")
+                    console.error("cannot find options for this format.", most(uploadedFileTypes.slice()) || uploadedFileTypes)
+                    if (uploadedFileTypes.length === 0) {
+                        return <>
+                        <div>cannot find selected file. please try again</div>
+                        <button
+                            className="action-button reset-button"
+                            onClick={handleReset}>
+                            Reset
+                        </button></>
+
+                    }
                 }
 
                 return (
@@ -218,38 +245,39 @@ const App: React.FC = () => {
             case Screen.CONVERTING:
                 return (
                     <>
-                    <StickyButton onClick={() => setShowLogs(true)} /><div className="content">
-                    {showLogs && <LogsView logs={logs} onClose={()=>setShowLogs(false)} />}
+                        <StickyButton onClick={() => setShowLogs(true)} /><div className="content">
+                            {showLogs && <LogsView logs={logs} onClose={() => setShowLogs(false)} />}
 
-                        <p>
-                            Converting...{" "}
+                            <p>
+                                Converting...{" "}
+                                {selectedFiles.length > 1 && (
+                                    <span>
+                                        ({currentConvertingFileIndex + 1} of{" "}
+                                        {selectedFiles.length})
+                                    </span>
+                                )}
+                            </p>
                             {selectedFiles.length > 1 && (
-                                <span>
-                                    ({currentConvertingFileIndex + 1} of{" "}
-                                    {selectedFiles.length})
-                                </span>
+                                <>
+                                    <p>
+                                        Converting file{" "}
+                                        <code>
+                                            {selectedFiles[currentConvertingFileIndex].name}
+                                        </code>
+                                    </p>
+                                    <DotProgressBar
+                                        progress={currentConvertingFileIndex + 1}
+                                        totalFiles={selectedFiles.length}
+                                    ></DotProgressBar>
+                                </>
                             )}
-                        </p>
-                        {selectedFiles.length > 1 && (
-                            <>
-                                <p>
-                                    Converting file{" "}
-                                    <code>
-                                        {selectedFiles[currentConvertingFileIndex].name}
-                                    </code>
-                                </p>
-                                <DotProgressBar
-                                    progress={currentConvertingFileIndex + 1}
-                                    totalFiles={selectedFiles.length}
-                                ></DotProgressBar>
-                            </>
-                        )}
-                        <progress
-                            className="progress-bar"
-                            value={conversionProgress}
-                            max={100} />
-                    {errorMessage && <blockquote className="error-message"><p>{errorMessage}</p></blockquote>}
-                    </div>
+                            <progress
+                                className="progress-bar"
+                                value={conversionProgress}
+                                ref={ProgressBarRef}
+                                max={100} />
+                            {errorMessage && <blockquote className="error-message"><p>{errorMessage}</p></blockquote>}
+                        </div>
                     </>
                 );
 
@@ -291,23 +319,23 @@ const App: React.FC = () => {
                 }
                 return (
                     <>
-                    <StickyButton onClick={() => setShowLogs(true)} />
-                    {showLogs && <LogsView logs={logs} onClose={()=>setShowLogs(false)} />}
-                    <div className="content">
-                        {PreviewComponent(
-                            outputFiles,
-                            currentFileIndex,
-                            setCurrentFileIndex
-                        )}
+                        <StickyButton onClick={() => setShowLogs(true)} />
+                        {showLogs && <LogsView logs={logs} onClose={() => setShowLogs(false)} />}
+                        <div className="content">
+                            {PreviewComponent(
+                                outputFiles,
+                                currentFileIndex,
+                                setCurrentFileIndex
+                            )}
 
-                        <a
-                            className="action-button convert-button download-button"
-                            download={download_filename}
-                            href={(outputURI || singleURI)+"#"+download_filename}
-                        >
-                            {download_btn_text}
-                        </a>
-                    </div></>
+                            <a
+                                className="action-button convert-button download-button"
+                                download={download_filename}
+                                href={(outputURI || singleURI) + "#" + download_filename}
+                            >
+                                {download_btn_text}
+                            </a>
+                        </div></>
                 );
 
             default:

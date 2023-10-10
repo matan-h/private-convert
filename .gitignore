@@ -23,3 +23,8 @@ test.html
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+/generate_cert.sh
+/server.key
+/server.crt
+/serves.py
+/serves_cls.py
