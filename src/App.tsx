@@ -35,12 +35,17 @@ const App: React.FC = () => {
     const [logs, setLogs] = useState<string[]>([]);
     const [showLogs, setShowLogs] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [postFFmpegInstance, setpostFFmpegInstance] = useState<Function | null>(null);
 
     useEffect(() => {
         const initFFmpeg = async () => {
             const instance = new ffmpegCls();
+            console.log("loading ffmpeg")
             await instance.load();
             setFFmpegInstance(instance);
+            console.log("ffmpeg instance loaded")
+            if (postFFmpegInstance) { postFFmpegInstance() }
+
         };
         try {
             initFFmpeg();
@@ -53,12 +58,18 @@ const App: React.FC = () => {
 
     const handleFileUpload = (acceptedFiles: File[]) => {
         setSelectedFiles(acceptedFiles);
-        setTimeout(() => setCurrentScreen(Screen.PREVIEW), 4000)
-        // setCurrentScreen(Screen.PREVIEW);
+        // setTimeout(() => setCurrentScreen(Screen.PREVIEW), 4000)
+        if (ffmpegInstance) {
+            setCurrentScreen(Screen.PREVIEW);
+        }
+        else {
+            console.log("no ffmpeg instance, using setpostFFmpegInstance")
+            setpostFFmpegInstance(() => { setCurrentScreen(Screen.PREVIEW) })
+        }
     };
 
     const { getRootProps, getInputProps } = useDropzone({
-        accept: { "image/gif": [], "video/*": [], "audio/*": [],"image/*":[] },
+        accept: { "image/gif": [], "video/*": [], "audio/*": [], "image/*": [] },
         onDrop: handleFileUpload,
     });
 
@@ -88,7 +99,7 @@ const App: React.FC = () => {
             const mimetype: string = ConvertOptions[output_ext].mimetype; // the first in the list is the default
             const newOutputFiles = [];
             const verifyFFmpegWorking = () => { // we cannot use progress value here since react save the state, so it always be zero
-                if (ProgressBarRef.current?.value === 0) { const s = ("ffmpeg not returning any progress in 6 seconds. maybe your browser kill it"); alert(s); setErrorMessage(s) }
+                if (ProgressBarRef.current?.value === 0) { const s = ("ffmpeg not returning any progress in 6 seconds. maybe your browser killed it"); setErrorMessage(s) }
             }
 
             for (const [i, inputFile] of selectedFiles.entries()) {
@@ -124,8 +135,9 @@ const App: React.FC = () => {
             setOutputFiles(newOutputFiles);
             setCurrentScreen(Screen.CONVERTED);
         } else {
-            const err = "an fatal error happened: no ffmpeg instance found";
-            alert(err);
+            let issharedarray = typeof SharedArrayBuffer !== 'undefined'
+            const err = "an fatal error happened: no ffmpeg instance found - please reload or open f12 and report." + (issharedarray ? "" : " (SharedArrayBuffer is defined)");
+            setLogs(prevlogs => [...prevlogs, err])
             setErrorMessage(err);
         }
     };
@@ -134,6 +146,7 @@ const App: React.FC = () => {
         setSelectedFiles([]);
         setConversionProgress(0);
         setCurrentScreen(Screen.UPLOAD);
+        setErrorMessage(null);
     };
 
     function renderScreen() {
@@ -193,15 +206,26 @@ const App: React.FC = () => {
                     }
                 } else {
                     options = [<option value="error">error</option>];
-                    console.error("cannot find options for this format.", most(uploadedFileTypes.slice()) || uploadedFileTypes)
+                    console.error("cannot find options for this format:", most(uploadedFileTypes.slice()) || uploadedFileTypes)
                     if (uploadedFileTypes.length === 0) {
                         return <>
-                        <div>cannot find selected file. please try again</div>
-                        <button
-                            className="action-button reset-button"
-                            onClick={handleReset}>
-                            Reset
-                        </button></>
+                            <blockquote><p>cannot find uploaded file. please try again</p></blockquote>
+                            <button
+                                className="action-button reset-button"
+                                onClick={handleReset}>
+                                Reset
+                            </button></>
+
+                    }
+                    else {
+                        return <>
+                            <blockquote className="error-message"><p>the website does not support convertion from {most(uploadedFileTypes.slice()) || uploadedFileTypes} format yet</p> </blockquote>
+                            <button
+                                className="action-button reset-button"
+                                onClick={handleReset}>
+                                Reset
+                            </button>
+                        </>
 
                     }
                 }
@@ -276,7 +300,13 @@ const App: React.FC = () => {
                                 value={conversionProgress}
                                 ref={ProgressBarRef}
                                 max={100} />
-                            {errorMessage && <blockquote className="error-message"><p>{errorMessage}</p></blockquote>}
+                            {errorMessage && <><blockquote className="error-message"><p>{errorMessage}</p></blockquote>
+                                <button
+                                    className="action-button reset-button"
+                                    onClick={handleReset}>
+                                    Reset
+                                </button>
+                            </>}
                         </div>
                     </>
                 );
@@ -284,8 +314,24 @@ const App: React.FC = () => {
             case Screen.CONVERTED:
                 if (!outputFiles.length) {
                     // if is not empty
-                    alert("no output from ffmpeg. check logs");
-                    return;
+                    return <div className="no-output-container">
+                        <blockquote className="error-message"><p>get error from ffmpeg. check logs:</p></blockquote><br></br>
+                        {/* <StickyButton onClick={() => setShowLogs(true)} /> */}
+                        {/* {showLogs && <LogsView logs={logs} onClose={() => setShowLogs(false)} />} */}
+                        <div className="logs-embed">
+                        <pre>
+                            {logs.map((log, index) => (
+                                <p key={index} className={(log === "Aborted()" && "ffend") || undefined}>{log}</p>
+                            ))}
+                        </pre>
+                        </div>
+                        <button
+                            className="action-button reset-button"
+                            onClick={handleReset}>
+                            Reset
+                        </button>
+
+                    </div>;
                 }
                 var singleURI: string = "";
                 if (outputFiles.length > 1 && !outputURI) {

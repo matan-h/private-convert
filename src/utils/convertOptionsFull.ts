@@ -56,14 +56,14 @@ export const ConvertOptions: ConvertOptionsType = {
   },
   avi: {
     extension: "avi",
-    mimetype: "video/x-msvideo",
+    mimetype: "video/msvideo",
     full_string: "AVI Video",
     optional_convert_routes: normalVideoRoutes,
     useful: 0.6,
   },
   mkv: {
     extension: "mkv",
-    mimetype: "video/x-matroska",
+    mimetype: "video/matroska",
     full_string: "Matroska Video",
     optional_convert_routes: copyWith(normalVideoRoutes, {
       mp4: "-codec copy",
@@ -113,14 +113,14 @@ export const ConvertOptions: ConvertOptionsType = {
   },
   wav: {
     extension: "wav",
-    mimetype: "audio/x-wav",
+    mimetype: "audio/wav",
     full_string: "WAV Audio",
     optional_convert_routes: normalAudioRoutes,
     useful: 0.3,
   },
   acc:{
     extension:"aac",
-    mimetype:"audio/x-aac",
+    mimetype:"audio/aac",
     full_string:"Advanced Audio Coding",
     optional_convert_routes:normalAudioRoutes,
     useful:0.15
@@ -140,6 +140,13 @@ export const ConvertOptions: ConvertOptionsType = {
     optional_convert_routes: normalImageRoutes,
     useful: 0.1,
   },
+  bmp:{
+    extension:"bmp",
+    mimetype:"image/bmp",
+    full_string:"Windows Bitmap Image",
+    optional_convert_routes:normalImageRoutes,
+    useful:0.05
+  }
 };
 
 function copyWith(
@@ -160,8 +167,10 @@ export function getByMimeType(
   var format;
   format = searchByMimeType(mimetype)
   if (format===undefined){ // try without x-
+    if (mimetype.includes("x-")){
+    console.log("cannot find the format normally. trying with 'x-'")
     format = searchByMimeType(mimetype.replace("x-",""))
-    
+    }   
 
   }
   return format;

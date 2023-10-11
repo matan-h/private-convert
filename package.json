@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ffmpeg/core": "^0.12.4",
     "@ffmpeg/core-mt": "^0.12.2",
     "@ffmpeg/ffmpeg": "^0.12.4",
     "@ffmpeg/util": "^0.12.0",

@@ -11,6 +11,14 @@
   max-height: 80%;
   overflow: auto;
 }
+.logs-embed{
+  border: 1px solid #ccc;
+  padding: 10px;
+  max-width: 80%;
+  overflow: auto;
+  margin-top: 10px; 
+  display: block;
+}
 
 .logs-header {
   display: flex;
