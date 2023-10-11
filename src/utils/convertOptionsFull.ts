@@ -6,24 +6,24 @@ export interface ConvertOption {
   useful: number; // number between 0 and 1
 }
 interface ConvertRoutes {
-  [format: string]: string;
+  [format: string]: string[];
 }
 interface ConvertOptionsType {
   [extension: string]: ConvertOption;
 }
 // --- video
 const normalVideoRoutes_video: ConvertRoutes = {
-  mp4: "",
-  mkv: "-vcodec copy",
-  avi: "",
-  gif: "",
+  mp4: [],
+  mkv: ["-vcodec","copy"],
+  avi: [],
+  gif: ["-filter_complex","[0:v] fps=15","-vsync","passthrough"]
   // webm: "", // FIXME: mp4->webm is complicated and took a lot of memory
 };
 
 const normalVideoRoutes_audio: ConvertRoutes = {
-  mp3: "-vn",
-  wav: "-vn -ac 2",
-  ogg: "-vn",
+  mp3: ["-vn"],
+  wav: ["-vn","-ac","2"],
+  ogg: ["-vn"],
 };
 const normalVideoRoutes = {
   ...normalVideoRoutes_video,
@@ -33,17 +33,17 @@ const normalVideoRoutes = {
 
 const normalImageRoutes = {
   // for now, I am not sure if thats is true or not.
-  jpg: "",
-  jpeg: "",
-  png: "",
-  bmp: "",
+  jpg: [],
+  jpeg: [],
+  png: [],
+  bmp: [],
 };
 // --- audio
 const normalAudioRoutes = {
-  mp3: "-acodec libmp3lame",
-  wav: "",
-  ogg: "-acodec libvorbis",
-  aac: "-acodec libfaac",
+  mp3: ["-acodec","libmp3lame"],
+  wav: [],
+  ogg: ["-acodec","libvorbis"],
+  aac: ["-acodec","libfaac"],
 };
 export const ConvertOptions: ConvertOptionsType = {
   // -- video
@@ -66,7 +66,7 @@ export const ConvertOptions: ConvertOptionsType = {
     mimetype: "video/matroska",
     full_string: "Matroska Video",
     optional_convert_routes: copyWith(normalVideoRoutes, {
-      mp4: "-codec copy",
+      mp4: ["-codec","copy"],
     }),
     useful: 0.5,
   },
@@ -75,7 +75,7 @@ export const ConvertOptions: ConvertOptionsType = {
     mimetype: "video/quicktime",
     full_string: "Apple QuickTime Video",
     optional_convert_routes: copyWith(normalImageRoutes, {
-      mp4: "-vcodec mpeg2video -acodec mp3",
+      mp4: ["-vcodec","mpeg2video","-acodec","mp3"],
     }),
     useful: 0.7,
   },
@@ -84,7 +84,7 @@ export const ConvertOptions: ConvertOptionsType = {
     mimetype: "video/webm",
     full_string: "WebM Video",
     optional_convert_routes: copyWith(normalVideoRoutes, {
-      mp4: "-crf 1 -c:v libx264",
+      mp4: ["-crf","1","-c:v","libx264"],
     }),
     useful: 0.4,
   },

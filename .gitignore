@@ -28,3 +28,4 @@ yarn-error.log*
 /server.crt
 /serves.py
 /serves_cls.py
+todo.txt

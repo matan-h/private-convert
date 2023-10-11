@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import "./App.css";
 import ffmpegCls from "./utils/FFmpegCls";
-import { ConvertOptions, getByMimeType } from "./utils/convertOptionsFull";
+import { ConvertOption, ConvertOptions, getByMimeType } from "./utils/convertOptionsFull";
 import { JSX } from "react/jsx-runtime";
 import DotProgressBar from "./components/DotProgressBar";
 import PreviewComponent from "./components/previewCard";
@@ -20,6 +20,7 @@ enum Screen {
 const App: React.FC = () => {
     const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.UPLOAD);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [mostInputFormat, setMostInputFormat] = useState<ConvertOption|null>(null);
     const [conversionProgress, setConversionProgress] = useState<number>(0);
     const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
     const [currentConvertingFileIndex, setCurrentConvertingFileIndex] =
@@ -54,7 +55,7 @@ const App: React.FC = () => {
             setErrorMessage(String(e))
             alert(e)
         }
-    }, []);
+    }, [postFFmpegInstance]);
 
     const handleFileUpload = (acceptedFiles: File[]) => {
         setSelectedFiles(acceptedFiles);
@@ -75,7 +76,7 @@ const App: React.FC = () => {
 
     const handleConvert = async () => {
         setCurrentScreen(Screen.CONVERTING);
-        console.log(`resetting outputFiles from [${outputFiles}] to []`);
+        // console.log(`resetting outputFiles from [${outputFiles}] to []`);
         setOutputFiles([]);
         if (ffmpegInstance) {
             const output_ext =
@@ -109,6 +110,11 @@ const App: React.FC = () => {
                         inputFile.name.lastIndexOf(".")
                     ) || inputFile.name;
                 const outputFilePath = `${output_fname}.${output_ext}`;
+                let ffmpeg_arguments: string[] = []
+                if (mostInputFormat){
+                    ffmpeg_arguments = mostInputFormat.optional_convert_routes[output_ext]
+                    console.log("ffmpeg arguments:",ffmpeg_arguments)
+                }
 
                 setCurrentConvertingFileIndex(i);
                 setConversionProgress(0); // always start with 0
@@ -122,7 +128,8 @@ const App: React.FC = () => {
 
                         inputFilePath,
                         outputFilePath,
-                        [] // TODO: use the ffmpeg arguments
+                        ffmpeg_arguments,
+                        // [] // TODO: use the ffmpeg arguments
                     );
                 }
                 catch (e) {
@@ -179,6 +186,11 @@ const App: React.FC = () => {
                         most(uploadedFileTypes.slice()) || "",
                         uploadedFileExt
                     ) || null;
+                
+                if (!mostInputFormat){
+                    console.log("setting setMostInputFormat",fileConvertOptions)
+                    setMostInputFormat(fileConvertOptions);
+                }
                 var options: JSX.Element[] = [];
                 var top_option = undefined;
                 var top_counter = 0;
@@ -347,7 +359,8 @@ const App: React.FC = () => {
                     singleURI = URL.createObjectURL(outputFiles[0]);
                 }
                 // const outputURI = URL.createObjectURL(outputFiles[0]);
-                console.log("get URI:", outputURI || singleURI);
+                let localOutputURI = outputURI || singleURI
+                console.log("get URI:",localOutputURI );
                 console.log("output Files:", outputFiles, currentFileIndex);
                 var download_btn_text;
                 var download_filename;
@@ -356,7 +369,7 @@ const App: React.FC = () => {
                 } else {
                     download_filename = outputFiles[0].name;
                 }
-                if ((outputURI || singleURI) === "") {
+                if ((localOutputURI) === "") {
                     download_btn_text = <code>building zip file</code>;
                 } else {
                     download_btn_text = (
@@ -371,16 +384,22 @@ const App: React.FC = () => {
                             {PreviewComponent(
                                 outputFiles,
                                 currentFileIndex,
-                                setCurrentFileIndex
+                                setCurrentFileIndex,singleURI||null
                             )}
 
                             <a
                                 className="action-button convert-button download-button"
                                 download={download_filename}
-                                href={(outputURI || singleURI) + "#" + download_filename}
+                                href={(localOutputURI) + "#" + download_filename}
                             >
                                 {download_btn_text}
                             </a>
+                            <button
+                                className="action-button reset-button reset-button-end"
+                                onClick={handleReset}>
+                                Reset
+                            </button>
+
                         </div></>
                 );
 

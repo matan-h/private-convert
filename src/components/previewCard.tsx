@@ -1,12 +1,10 @@
-import React, { useState } from "react";
-
-const PreviewComponent = (selectedFiles: File[],currentFileIndex:number,setCurrentFileIndex:Function) => {
+const PreviewComponent = (selectedFiles: File[],currentFileIndex:number,setCurrentFileIndex:Function,blob:string|null=null) => {
   return (
     
     <>
       <div className="preview-card">
         {renderPreview(
-          URL.createObjectURL(selectedFiles[currentFileIndex]),
+          blob||URL.createObjectURL(selectedFiles[currentFileIndex]),
           selectedFiles[currentFileIndex].type
         )}
       </div>
