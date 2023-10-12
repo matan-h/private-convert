@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import "./App.css";
+import "./components/LoadingProgressbar.css"
 import ffmpegCls from "./utils/FFmpegCls";
 import { ConvertOption, ConvertOptions, getByMimeType } from "./utils/convertOptionsFull";
 import { JSX } from "react/jsx-runtime";
 import DotProgressBar from "./components/DotProgressBar";
 import PreviewComponent from "./components/previewCard";
 import { createZipFile } from "./utils/ZipCreator";
-import StickyButton from "./components/StickyButton";
+import StickyButton from "./components/LogsButton";
 import LogsView from "./components/LogsView";
 
 enum Screen {
@@ -194,6 +195,17 @@ const App: React.FC = () => {
                 var options: JSX.Element[] = [];
                 var top_option = undefined;
                 var top_counter = 0;
+                let loading_pb =  <><div className="loader--text">Loading FFmpeg core</div>
+                <div className="loading-pb-container">
+                  <div className="loader">
+                  <div className="loader--dot"></div>
+                  <div className="loader--dot"></div>
+                  <div className="loader--dot"></div>
+                  <div className="loader--dot"></div>
+                  <div className="loader--dot"></div>
+                  <div className="loader--dot"></div>
+                </div>
+              </div></>
 
                 if (fileConvertOptions) {
                     console.log(fileConvertOptions.optional_convert_routes);
@@ -260,17 +272,17 @@ const App: React.FC = () => {
                                 {options}
                             </select>
                         </div>
-
+                        {!ffmpegInstance && loading_pb}
                         <div className="button-group">
-                            <button
+                            {/* <button
                                 className="action-button reset-button"
                                 onClick={handleReset}
                             >
                                 Reset
-                            </button>
+                            </button> */}
                             <button
                                 className="action-button convert-button"
-                                onClick={handleConvert}
+                                onClick={handleConvert} disabled={!ffmpegInstance} hidden={!ffmpegInstance}
                             >
                                 Convert
                             </button>
@@ -395,7 +407,7 @@ const App: React.FC = () => {
                                 {download_btn_text}
                             </a>
                             <button
-                                className="action-button reset-button reset-button-end"
+                                className="action-button reset-button reset-sticky-top"
                                 onClick={handleReset}>
                                 Reset
                             </button>

@@ -2,6 +2,7 @@ const PreviewComponent = (selectedFiles: File[],currentFileIndex:number,setCurre
   return (
     
     <>
+      {selectedFiles.length > 1 && (<h4>{selectedFiles[currentFileIndex].name}</h4>)}
       <div className="preview-card">
         {renderPreview(
           blob||URL.createObjectURL(selectedFiles[currentFileIndex]),

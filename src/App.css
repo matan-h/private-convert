@@ -177,6 +177,14 @@ body {
 .dot.done {
   background-color: green;
 }
+.reset-sticky-top{
+  position: fixed;
+  top: 20px;
+  right: 0;
+  margin-right: 1vw;
+  border: 2px solid red;
+  border-radius: 25px;
+}
 .error-message {
   display: block;
   background-color: #f8d7da;
@@ -194,7 +202,4 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-}
-.reset-button-end{
-  margin-top:2vw;
 }
