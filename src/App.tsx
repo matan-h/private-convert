@@ -21,7 +21,7 @@ enum Screen {
 const App: React.FC = () => {
     const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.UPLOAD);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-    const [mostInputFormat, setMostInputFormat] = useState<ConvertOption|null>(null);
+    const [mostInputFormat, setMostInputFormat] = useState<ConvertOption | null>(null);
     const [conversionProgress, setConversionProgress] = useState<number>(0);
     const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
     const [currentConvertingFileIndex, setCurrentConvertingFileIndex] =
@@ -38,12 +38,17 @@ const App: React.FC = () => {
     const [showLogs, setShowLogs] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [postFFmpegInstance, setpostFFmpegInstance] = useState<Function | null>(null);
+    const [iknowFormat, setIknowFormat] = useState<string | null>(null);
 
     useEffect(() => {
+        document.getElementById("footer")!.hidden = false
         const initFFmpeg = async () => {
+            if (ffmpegInstance) { if (postFFmpegInstance) { postFFmpegInstance() }; return }
             const instance = new ffmpegCls();
             console.log("loading ffmpeg")
             await instance.load();
+            instance.on("progress", onProgress);
+            instance.on("log", onLog);
             setFFmpegInstance(instance);
             console.log("ffmpeg instance loaded")
             if (postFFmpegInstance) { postFFmpegInstance() }
@@ -56,7 +61,7 @@ const App: React.FC = () => {
             setErrorMessage(String(e))
             alert(e)
         }
-    }, [postFFmpegInstance]);
+    }, [postFFmpegInstance, ffmpegInstance]);
 
     const handleFileUpload = (acceptedFiles: File[]) => {
         setSelectedFiles(acceptedFiles);
@@ -66,15 +71,29 @@ const App: React.FC = () => {
         }
         else {
             console.log("no ffmpeg instance, using setpostFFmpegInstance")
-            setpostFFmpegInstance(() => { setCurrentScreen(Screen.PREVIEW) })
+            setpostFFmpegInstance(() => { setCurrentScreen(Screen.PREVIEW);setpostFFmpegInstance(null) })
         }
     };
 
     const { getRootProps, getInputProps } = useDropzone({
-        accept: { "image/gif": [], "video/*": [], "audio/*": [], "image/*": [] },
+        accept: { "image/gif": [], "video/*": [], "audio/*": [], "image/*": []},
         onDrop: handleFileUpload,
     });
+    interface progressOBJ {
+        progress: number;
+        time: number;
+    }
 
+    const onProgress = function (progress_obj: progressOBJ) {
+        if (progress_obj.progress > 1000) { return } // sometimes happend to ffmpeg.wasm
+        const progress = progress_obj.progress * 100;
+        console.log("ffmpeg.wasm::progress:", progress);
+        setConversionProgress(progress);
+    };
+    const onLog = ({ message, type }: any) => {
+        console.log(`[${type}]:${message}`);
+        setLogs(prevlogs => [...prevlogs, message])
+    }
     const handleConvert = async () => {
         setCurrentScreen(Screen.CONVERTING);
         // console.log(`resetting outputFiles from [${outputFiles}] to []`);
@@ -82,26 +101,11 @@ const App: React.FC = () => {
         if (ffmpegInstance) {
             const output_ext =
                 convertDropdown.current!.selectedOptions[0].value;
-            interface progressOBJ {
-                progress: number;
-                time: number;
-            }
 
-            const onProgress = function onProgress(progress_obj: progressOBJ) {
-                if (progress_obj.progress > 1000) { return } // sometimes happend to ffmpeg.wasm
-                const progress = progress_obj.progress * 100;
-                console.log("ffmpeg.wasm::progress:", progress);
-                setConversionProgress(progress);
-            };
-            ffmpegInstance.on("progress", onProgress);
-            ffmpegInstance.on("log", ({ message, type }: any) => {
-                console.log(`[${type}]:${message}`);
-                setLogs(prevlogs => [...prevlogs, message])
-            });
             const mimetype: string = ConvertOptions[output_ext].mimetype; // the first in the list is the default
             const newOutputFiles = [];
             const verifyFFmpegWorking = () => { // we cannot use progress value here since react save the state, so it always be zero
-                if (ProgressBarRef.current?.value === 0) { const s = ("ffmpeg not returning any progress in 6 seconds. maybe your browser killed it"); setErrorMessage(s) }
+                if (ProgressBarRef.current?.value === 0) { const s = ("ffmpeg not returning any progress in 8 seconds. maybe your browser killed it. if it continue to be on 0%, please reload"); setErrorMessage(s)}
             }
 
             for (const [i, inputFile] of selectedFiles.entries()) {
@@ -112,9 +116,12 @@ const App: React.FC = () => {
                     ) || inputFile.name;
                 const outputFilePath = `${output_fname}.${output_ext}`;
                 let ffmpeg_arguments: string[] = []
-                if (mostInputFormat){
+                if (mostInputFormat) {
                     ffmpeg_arguments = mostInputFormat.optional_convert_routes[output_ext]
-                    console.log("ffmpeg arguments:",ffmpeg_arguments)
+                    console.log("ffmpeg arguments:", ffmpeg_arguments)
+                    if (ffmpeg_arguments===undefined){
+                        console.log("mostInputFormat:",mostInputFormat,output_ext);debugger
+                    }
                 }
 
                 setCurrentConvertingFileIndex(i);
@@ -155,6 +162,10 @@ const App: React.FC = () => {
         setConversionProgress(0);
         setCurrentScreen(Screen.UPLOAD);
         setErrorMessage(null);
+        setIknowFormat(null);
+        setMostInputFormat(null);
+        setLogs([]);
+        setOutputFiles([]);
     };
 
     function renderScreen() {
@@ -182,30 +193,32 @@ const App: React.FC = () => {
                         (file) => file.name.split(".").pop() || ""
                     )
                 );
-                var fileConvertOptions =
-                    getByMimeType(
-                        most(uploadedFileTypes.slice()) || "",
-                        uploadedFileExt
-                    ) || null;
-                
-                if (!mostInputFormat){
-                    console.log("setting setMostInputFormat",fileConvertOptions)
-                    setMostInputFormat(fileConvertOptions);
+                var fileConvertOptions: ConvertOption | null;
+                if (iknowFormat) {
+                    fileConvertOptions = ConvertOptions[iknowFormat] || null;
                 }
+                else {
+                    fileConvertOptions =
+                        getByMimeType(
+                            most(uploadedFileTypes.slice()) || "",
+                            uploadedFileExt
+                        ) || null;
+                }
+
                 var options: JSX.Element[] = [];
                 var top_option = undefined;
                 var top_counter = 0;
-                let loading_pb =  <><div className="loader--text">Loading FFmpeg core</div>
-                <div className="loading-pb-container">
-                  <div className="loader">
-                  <div className="loader--dot"></div>
-                  <div className="loader--dot"></div>
-                  <div className="loader--dot"></div>
-                  <div className="loader--dot"></div>
-                  <div className="loader--dot"></div>
-                  <div className="loader--dot"></div>
-                </div>
-              </div></>
+                let loading_pb = <><div className="loader--text">Loading FFmpeg core</div>
+                    <div className="loading-pb-container">
+                        <div className="loader">
+                            <div className="loader--dot"></div>
+                            <div className="loader--dot"></div>
+                            <div className="loader--dot"></div>
+                            <div className="loader--dot"></div>
+                            <div className="loader--dot"></div>
+                            <div className="loader--dot"></div>
+                        </div>
+                    </div></>
 
                 if (fileConvertOptions) {
                     console.log(fileConvertOptions.optional_convert_routes);
@@ -230,7 +243,7 @@ const App: React.FC = () => {
                     }
                 } else {
                     options = [<option value="error">error</option>];
-                    console.error("cannot find options for this format:", most(uploadedFileTypes.slice()) || uploadedFileTypes)
+                    console.error("cannot find options for this format:", most(uploadedFileTypes.slice()) || uploadedFileTypes, mostInputFormat)
                     if (uploadedFileTypes.length === 0) {
                         return <>
                             <blockquote><p>cannot find uploaded file. please try again</p></blockquote>
@@ -242,6 +255,10 @@ const App: React.FC = () => {
 
                     }
                     else {
+                        let options = [];
+                        for (let opt in ConvertOptions) {
+                            options.push(<option key={opt}>{opt}</option>)
+                        }
                         return <>
                             <blockquote className="error-message"><p>the website does not support convertion from {most(uploadedFileTypes.slice()) || uploadedFileTypes} format yet</p> </blockquote>
                             <button
@@ -249,9 +266,41 @@ const App: React.FC = () => {
                                 onClick={handleReset}>
                                 Reset
                             </button>
+                            <button
+                                className="action-button reset-button i-know"
+                                onClick={() => { document.getElementById("iknow-div")!.hidden = !document.getElementById("iknow-div")!.hidden }}>
+                                I know what I`m doing
+                            </button>
+                            <div id="iknow-div" className="iknow-div" hidden={true}>
+                                <p>handle my file as a:</p>
+                                <select className="dropdown" id="iknow-dropdown">
+                                    {options}
+
+
+
+                                </select>
+                                <button
+                                    className="action-button convert-button"
+                                    onClick={() => {
+                                        let select = document.getElementById("iknow-dropdown")! as HTMLSelectElement;
+
+                                        setIknowFormat(select.selectedOptions[0].value)
+
+
+                                    }} disabled={!ffmpegInstance} hidden={!ffmpegInstance}
+                                >
+                                    reHandle
+                                </button>
+
+                            </div>
                         </>
 
                     }
+                }
+                if (!mostInputFormat) {
+                    console.log({ mostInputFormat, fileConvertOptions })
+                    console.log("setting setMostInputFormat", fileConvertOptions)
+                    setMostInputFormat(fileConvertOptions);
                 }
 
                 return (
@@ -324,6 +373,7 @@ const App: React.FC = () => {
                                 value={conversionProgress}
                                 ref={ProgressBarRef}
                                 max={100} />
+                            <span className="progress-text">{conversionProgress.toFixed(2)}%</span>
                             {errorMessage && <><blockquote className="error-message"><p>{errorMessage}</p></blockquote>
                                 <button
                                     className="action-button reset-button"
@@ -343,11 +393,11 @@ const App: React.FC = () => {
                         {/* <StickyButton onClick={() => setShowLogs(true)} /> */}
                         {/* {showLogs && <LogsView logs={logs} onClose={() => setShowLogs(false)} />} */}
                         <div className="logs-embed">
-                        <pre>
-                            {logs.map((log, index) => (
-                                <p key={index} className={(log === "Aborted()" && "ffend") || undefined}>{log}</p>
-                            ))}
-                        </pre>
+                            <pre>
+                                {logs.map((log, index) => (
+                                    <p key={index} className={(log === "Aborted()" && "ffend") || undefined}>{log}</p>
+                                ))}
+                            </pre>
                         </div>
                         <button
                             className="action-button reset-button"
@@ -372,7 +422,7 @@ const App: React.FC = () => {
                 }
                 // const outputURI = URL.createObjectURL(outputFiles[0]);
                 let localOutputURI = outputURI || singleURI
-                console.log("get URI:",localOutputURI );
+                console.log("get URI:", localOutputURI);
                 console.log("output Files:", outputFiles, currentFileIndex);
                 var download_btn_text;
                 var download_filename;
@@ -396,7 +446,7 @@ const App: React.FC = () => {
                             {PreviewComponent(
                                 outputFiles,
                                 currentFileIndex,
-                                setCurrentFileIndex,singleURI||null
+                                setCurrentFileIndex, singleURI || null
                             )}
 
                             <a

@@ -4,11 +4,13 @@ class ffmpegCls {
   private ffmpeg: FFmpegCore;
   private loaded: boolean;
   on: Function;
+  off:Function;
 
   constructor() {
     this.ffmpeg = new FFmpegCore();
     this.loaded = false;
     this.on = this.ffmpeg.on.bind(this.ffmpeg)
+    this.off = this.ffmpeg.off.bind(this.ffmpeg)
   }
 
   /**

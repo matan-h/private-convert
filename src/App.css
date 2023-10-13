@@ -203,3 +203,33 @@ body {
   justify-content: center;
   height: 100vh;
 }
+.i-know{
+  position: absolute;
+  bottom: 1vw;
+  size:10vw;
+  left:1vw;
+  background-color:#721c24 !important;
+  margin-top:10vw;
+  padding:auto;
+  
+
+}
+.iknow-div{
+  left:1vw;
+  position: absolute;
+  bottom: 20vw;
+}
+footer {
+  background-color: #ced8ee; 
+  color: #333; 
+  text-align: center;
+  padding: 0;
+}
+footer a {
+  color: #007BFF; /* Change to your desired link color */
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline; 
+}
