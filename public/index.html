@@ -18,7 +18,7 @@
     <script>
       window.coi = {
         shouldRegister: () => !(window.SharedArrayBuffer),// register unless
-        coepCredentialless: () => false,
+        coepCredentialless: () => false, // always Cross-Origin-Embedder-Policy : require-corp
 
 
     }
