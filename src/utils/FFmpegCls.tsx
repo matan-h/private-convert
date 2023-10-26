@@ -26,21 +26,23 @@ class ffmpegCls {
   async load(): Promise<void> {
     let is_firefox = navigator.userAgent.toLowerCase().includes('firefox');
     let core_path = is_firefox ? "core-mt" : "core"
+    // const base_url =  `./js/${core_path}`
+    const base_url =  `https://unpkg.com/@ffmpeg/${core_path}@0.12.2/dist/umd`
     console.log("loading ffmpeg from",core_path,"is_firefox:",is_firefox)
     // the documention say "toBlobURL is used to bypass CORS issue, urls with the same
     // domain can be used directly.", but ffmpeg.wasm crash without toBlobURL for some reason
     let coreblob = await toBlobURL(
-      `./js/${core_path}/ffmpeg-core.js`,
+      `${base_url}/ffmpeg-core.js`,
       "text/javascript",
     )
     let wasmblob = await toBlobURL(
-      `./js/${core_path}/ffmpeg-core.wasm`,
+      `${base_url}/ffmpeg-core.wasm`,
       "application/wasm",
     )
     let workerblob = undefined;
     if (is_firefox) {
       workerblob = await toBlobURL(
-        `./js/${core_path}/ffmpeg-core.worker.js`, "text/javascript"
+        `${base_url}/ffmpeg-core.worker.js`, "text/javascript"
       );
     }
     await this.ffmpeg.load({
