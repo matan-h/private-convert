@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v3
 
@@ -19,12 +21,14 @@ jobs:
         CI=false yarn install
         CI=false yarn build
     - name: Create Release
-      uses: actions/create-release@latest
+      uses: ncipollo/release-action@latest
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: 'the first working release' # TODO: changelog, and build only on tag
+          body: 'the first working artifacts' # TODO: changelog, and build only on tag
           draft: false
           prerelease: false
+          artifacts: "build/*"
+
