@@ -24,6 +24,6 @@ jobs:
       with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: '' # TODO: changelog, and build only on tag
+          body: 'the first working release' # TODO: changelog, and build only on tag
           draft: false
           prerelease: false
