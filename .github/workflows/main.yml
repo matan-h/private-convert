@@ -16,10 +16,15 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 18.x
-    - name: Build
+    - name: Install dependencies
       run: |
         CI=false yarn install
+    - name: Build
+      run: |
         CI=false yarn build
+    - name: Zip build
+      run: |
+        zip -r build.zip build/
     - name: Create Release
       uses: ncipollo/release-action@v1
       env:
@@ -27,8 +32,8 @@ jobs:
       with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: 'the first working artifacts release' # TODO: changelog, and build only on tag
+          body: 'the first working with build.zip artifact' # TODO: changelog, and build only on tag
           draft: false
           prerelease: false
-          artifacts: "build/*"
+          artifacts: "build.zip"
 
