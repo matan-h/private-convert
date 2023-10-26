@@ -39,9 +39,25 @@ const App: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [postFFmpegInstance, setpostFFmpegInstance] = useState<Function | null>(null);
     const [iknowFormat, setIknowFormat] = useState<string | null>(null);
-
     useEffect(() => {
         document.getElementById("footer")!.hidden = false
+        // define onFFoutput
+        interface progressOBJ {
+            progress: number;
+            time: number;
+        }
+    
+        const onProgress = function (progress_obj: progressOBJ) {
+            if (progress_obj.progress > 1000) { return } // sometimes happend to ffmpeg.wasm
+            const progress = progress_obj.progress * 100;
+            console.log("ffmpeg.wasm::progress:", progress);
+            setConversionProgress(progress);
+        };
+        const onLog = ({ message, type }: any) => {
+            console.log(`[${type}]:${message}`);
+            setLogs(prevlogs => [...prevlogs, message])
+        }
+        // load the ffmpeg
         const initFFmpeg = async () => {
             if (ffmpegInstance) { if (postFFmpegInstance) { postFFmpegInstance() }; return }
             const instance = new ffmpegCls();
@@ -79,23 +95,15 @@ const App: React.FC = () => {
         accept: { "image/gif": [], "video/*": [], "audio/*": [], "image/*": []},
         onDrop: handleFileUpload,
     });
-    interface progressOBJ {
-        progress: number;
-        time: number;
-    }
 
-    const onProgress = function (progress_obj: progressOBJ) {
-        if (progress_obj.progress > 1000) { return } // sometimes happend to ffmpeg.wasm
-        const progress = progress_obj.progress * 100;
-        console.log("ffmpeg.wasm::progress:", progress);
-        setConversionProgress(progress);
-    };
-    const onLog = ({ message, type }: any) => {
-        console.log(`[${type}]:${message}`);
-        setLogs(prevlogs => [...prevlogs, message])
-    }
     const handleConvert = async () => {
         setCurrentScreen(Screen.CONVERTING);
+        window.addEventListener("popstate", ()=>{;handleReset_reload()})
+
+
+          window.history.pushState({}, "converting", "#converting");
+        // window.removeEventListener('popstate',handleReset);
+
         // console.log(`resetting outputFiles from [${outputFiles}] to []`);
         setOutputFiles([]);
         if (ffmpegInstance) {
@@ -120,7 +128,7 @@ const App: React.FC = () => {
                     ffmpeg_arguments = mostInputFormat.optional_convert_routes[output_ext]
                     console.log("ffmpeg arguments:", ffmpeg_arguments)
                     if (ffmpeg_arguments===undefined){
-                        console.log("mostInputFormat:",mostInputFormat,output_ext);debugger
+                        console.log("mostInputFormat:",mostInputFormat,output_ext);
                     }
                 }
 
@@ -137,7 +145,6 @@ const App: React.FC = () => {
                         inputFilePath,
                         outputFilePath,
                         ffmpeg_arguments,
-                        // [] // TODO: use the ffmpeg arguments
                     );
                 }
                 catch (e) {
@@ -146,6 +153,11 @@ const App: React.FC = () => {
                 }
                 clearTimeout(it)
                 newOutputFiles.push(outFile);
+            }
+            if (!ffmpegInstance.loaded){
+                console.log("get ffmpegInstance.loaded=false")
+                handleReset();
+                return;
             }
             setOutputFiles(newOutputFiles);
             setCurrentScreen(Screen.CONVERTED);
@@ -156,8 +168,9 @@ const App: React.FC = () => {
             setErrorMessage(err);
         }
     };
+    const handleReset_reload = ()=>{handleReset("true")}
 
-    const handleReset = () => {
+    const handleReset = (x:any="false") => {
         setSelectedFiles([]);
         setConversionProgress(0);
         setCurrentScreen(Screen.UPLOAD);
@@ -166,6 +179,10 @@ const App: React.FC = () => {
         setMostInputFormat(null);
         setLogs([]);
         setOutputFiles([]);
+        if (ffmpegInstance && (x==="true")){
+            ffmpegInstance.reload()
+        }
+        window.removeEventListener('popstate',handleReset_reload);
     };
 
     function renderScreen() {
@@ -272,7 +289,7 @@ const App: React.FC = () => {
                                 I know what I`m doing
                             </button>
                             <div id="iknow-div" className="iknow-div" hidden={true}>
-                                <p>handle my file as a:</p>
+                                <p>handle my file as a: (my file is more similar to ...)</p>
                                 <select className="dropdown" id="iknow-dropdown">
                                     {options}
 
@@ -287,7 +304,7 @@ const App: React.FC = () => {
                                         setIknowFormat(select.selectedOptions[0].value)
 
 
-                                    }} disabled={!ffmpegInstance} hidden={!ffmpegInstance}
+                                    }}
                                 >
                                     reHandle
                                 </button>
@@ -373,7 +390,7 @@ const App: React.FC = () => {
                                 value={conversionProgress}
                                 ref={ProgressBarRef}
                                 max={100} />
-                            <span className="progress-text">{conversionProgress.toFixed(2)}%</span>
+                            {conversionProgress !==0 && <span className="progress-text">{conversionProgress.toFixed(2)}%</span>}
                             {errorMessage && <><blockquote className="error-message"><p>{errorMessage}</p></blockquote>
                                 <button
                                     className="action-button reset-button"
@@ -387,12 +404,12 @@ const App: React.FC = () => {
 
             case Screen.CONVERTED:
                 if (!outputFiles.length) {
-                    // if is not empty
+                    // if is empty
                     return <div className="no-output-container">
                         <blockquote className="error-message"><p>get error from ffmpeg. check logs:</p></blockquote><br></br>
                         {/* <StickyButton onClick={() => setShowLogs(true)} /> */}
                         {/* {showLogs && <LogsView logs={logs} onClose={() => setShowLogs(false)} />} */}
-                        <div className="logs-embed">
+                        <div className="logs-embed" hidden={!logs.length}>
                             <pre>
                                 {logs.map((log, index) => (
                                     <p key={index} className={(log === "Aborted()" && "ffend") || undefined}>{log}</p>
@@ -446,7 +463,7 @@ const App: React.FC = () => {
                             {PreviewComponent(
                                 outputFiles,
                                 currentFileIndex,
-                                setCurrentFileIndex, singleURI || null
+                                setCurrentFileIndex,
                             )}
 
                             <a

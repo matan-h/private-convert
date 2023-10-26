@@ -2,7 +2,7 @@ import { FFmpeg as FFmpegCore } from "@ffmpeg/ffmpeg";
 import { toBlobURL, fetchFile } from "@ffmpeg/util";
 class ffmpegCls {
   private ffmpeg: FFmpegCore;
-  private loaded: boolean;
+  loaded: boolean;
   on: Function;
   off:Function;
 
@@ -12,7 +12,14 @@ class ffmpegCls {
     this.on = this.ffmpeg.on.bind(this.ffmpeg)
     this.off = this.ffmpeg.off.bind(this.ffmpeg)
   }
+  /*
+  * terminate the ffmpeg and restart it.
+  */
+  async reload(){
+    if (this.loaded){this.ffmpeg.terminate();this.loaded = false}
+    return await this.load()
 
+  }
   /**
    * Load the FFmpeg library.
    */
@@ -23,17 +30,17 @@ class ffmpegCls {
     // the documention say "toBlobURL is used to bypass CORS issue, urls with the same
     // domain can be used directly.", but ffmpeg.wasm crash without toBlobURL for some reason
     let coreblob = await toBlobURL(
-      `/js/${core_path}/ffmpeg-core.js`,
+      `./js/${core_path}/ffmpeg-core.js`,
       "text/javascript",
     )
     let wasmblob = await toBlobURL(
-      `/js/${core_path}/ffmpeg-core.wasm`,
+      `./js/${core_path}/ffmpeg-core.wasm`,
       "application/wasm",
     )
     let workerblob = undefined;
     if (is_firefox) {
       workerblob = await toBlobURL(
-        `/js/${core_path}/ffmpeg-core.worker.js`, "text/javascript"
+        `./js/${core_path}/ffmpeg-core.worker.js`, "text/javascript"
       );
     }
     await this.ffmpeg.load({

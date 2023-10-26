@@ -83,7 +83,8 @@ export const ConvertOptions: ConvertOptionsType = {
     extension: "webm",
     mimetype: "video/webm",
     full_string: "WebM Video",
-    optional_convert_routes: copyWith(normalVideoRoutes, {
+    optional_convert_routes: /*normalVideoRoutes,*/
+    copyWith(normalVideoRoutes, {
       mp4: ["-crf","1","-c:v","libx264"],
     }),
     useful: 0.4,

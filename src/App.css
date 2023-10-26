@@ -223,7 +223,7 @@ footer {
   background-color: #ced8ee; 
   color: #333; 
   text-align: center;
-  padding: 0;
+  padding: 0.7vw;
 }
 footer a {
   color: #007BFF; /* Change to your desired link color */

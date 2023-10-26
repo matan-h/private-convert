@@ -2,6 +2,7 @@
   "name": "converter",
   "version": "0.1.0",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@ffmpeg/core": "^0.12.4",
     "@ffmpeg/core-mt": "^0.12.2",

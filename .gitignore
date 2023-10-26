@@ -29,3 +29,4 @@ yarn-error.log*
 /serves.py
 /serves_cls.py
 todo.txt
+/serves_cls_no_headers.py
