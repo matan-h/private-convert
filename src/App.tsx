@@ -46,7 +46,7 @@ const App: React.FC = () => {
             progress: number;
             time: number;
         }
-    
+
         const onProgress = function (progress_obj: progressOBJ) {
             if (progress_obj.progress > 1000) { return } // sometimes happend to ffmpeg.wasm
             const progress = progress_obj.progress * 100;
@@ -87,21 +87,21 @@ const App: React.FC = () => {
         }
         else {
             console.log("no ffmpeg instance, using setpostFFmpegInstance")
-            setpostFFmpegInstance(() => { setCurrentScreen(Screen.PREVIEW);setpostFFmpegInstance(null) })
+            setpostFFmpegInstance(() => { setCurrentScreen(Screen.PREVIEW); setpostFFmpegInstance(null) })
         }
     };
 
     const { getRootProps, getInputProps } = useDropzone({
-        accept: { "image/gif": [], "video/*": [], "audio/*": [], "image/*": []},
+        accept: { "image/gif": [], "video/*": [], "audio/*": [], "image/*": [] },
         onDrop: handleFileUpload,
     });
 
     const handleConvert = async () => {
         setCurrentScreen(Screen.CONVERTING);
-        window.addEventListener("popstate", ()=>{;handleReset_reload()})
+        window.addEventListener("popstate", () => { ; handleReset_reload() })
 
 
-          window.history.pushState({}, "converting", "#converting");
+        window.history.pushState({}, "converting", "#converting");
         // window.removeEventListener('popstate',handleReset);
 
         // console.log(`resetting outputFiles from [${outputFiles}] to []`);
@@ -113,7 +113,7 @@ const App: React.FC = () => {
             const mimetype: string = ConvertOptions[output_ext].mimetype; // the first in the list is the default
             const newOutputFiles = [];
             const verifyFFmpegWorking = () => { // we cannot use progress value here since react save the state, so it always be zero
-                if (ProgressBarRef.current?.value === 0) { const s = ("ffmpeg not returning any progress in 8 seconds. maybe your browser killed it. if it continue to be on 0%, please reload"); setErrorMessage(s)}
+                if (ProgressBarRef.current?.value === 0) { const s = ("ffmpeg not returning any progress in 8 seconds. maybe your browser killed it. if it continue to be on 0%, please reload"); setErrorMessage(s) }
             }
 
             for (const [i, inputFile] of selectedFiles.entries()) {
@@ -127,8 +127,8 @@ const App: React.FC = () => {
                 if (mostInputFormat) {
                     ffmpeg_arguments = mostInputFormat.optional_convert_routes[output_ext]
                     console.log("ffmpeg arguments:", ffmpeg_arguments)
-                    if (ffmpeg_arguments===undefined){
-                        console.log("mostInputFormat:",mostInputFormat,output_ext);
+                    if (ffmpeg_arguments === undefined) {
+                        console.log("mostInputFormat:", mostInputFormat, output_ext);
                     }
                 }
 
@@ -154,7 +154,7 @@ const App: React.FC = () => {
                 clearTimeout(it)
                 newOutputFiles.push(outFile);
             }
-            if (!ffmpegInstance.loaded){
+            if (!ffmpegInstance.loaded) {
                 console.log("get ffmpegInstance.loaded=false")
                 handleReset();
                 return;
@@ -168,9 +168,9 @@ const App: React.FC = () => {
             setErrorMessage(err);
         }
     };
-    const handleReset_reload = ()=>{handleReset("true")}
+    const handleReset_reload = () => { handleReset("true") }
 
-    const handleReset = (x:any="false") => {
+    const handleReset = (x: any = "false") => {
         setSelectedFiles([]);
         setConversionProgress(0);
         setCurrentScreen(Screen.UPLOAD);
@@ -179,24 +179,34 @@ const App: React.FC = () => {
         setMostInputFormat(null);
         setLogs([]);
         setOutputFiles([]);
-        if (ffmpegInstance && (x==="true")){
+        if (ffmpegInstance && (x === "true")) {
             ffmpegInstance.reload()
         }
-        window.removeEventListener('popstate',handleReset_reload);
+        window.removeEventListener('popstate', handleReset_reload);
     };
 
     function renderScreen() {
         switch (currentScreen) {
             case Screen.UPLOAD:
                 return (
-                    <div className="full-screen">
-                        <div className="upload-area" {...getRootProps()}>
-                            <input {...getInputProps()} />
-                            <p className="upload-text">
-                                Drag files here or click here to upload files
-                            </p>
+                    <>
+                        <div className="description-box">
+                            <p className="description-text">
+                            Private Convert is a private (static) website to convert media files privately in your browser.<br></br>
+                                Your files will stay locally on your computer.
+                                {/* <b>**without**</b> be uploaded to our servers. */}
+
+                            </p></div>
+                        <div className="full-screen">
+                            <div className="upload-area" {...getRootProps()}>
+                                <input {...getInputProps()} />
+                                <p className="upload-text">
+                                    Drag files here or click here to upload files
+                                </p>
+                            </div>
+                            <br></br>
                         </div>
-                    </div>
+                    </>
                 );
 
             case Screen.PREVIEW:
@@ -390,7 +400,7 @@ const App: React.FC = () => {
                                 value={conversionProgress}
                                 ref={ProgressBarRef}
                                 max={100} />
-                            {conversionProgress !==0 && <span className="progress-text">{conversionProgress.toFixed(2)}%</span>}
+                            {conversionProgress !== 0 && <span className="progress-text">{conversionProgress.toFixed(2)}%</span>}
                             {errorMessage && <><blockquote className="error-message"><p>{errorMessage}</p></blockquote>
                                 <button
                                     className="action-button reset-button"

@@ -233,3 +233,23 @@ footer a {
 footer a:hover {
   text-decoration: underline; 
 }
+.description-text {
+  font-size: 1rem;
+  color: #666;
+  text-align: center;
+  /* position: fixed; */
+  /* z-index: 0; */
+  /* top:10px */
+}
+.description-box {
+  z-index: 0;
+  position: fixed;
+  top:10px;
+  background-color: #38ff0021;
+  border: 2px solid #999;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+  max-width: 400px;
+  text-align: center;
+}
