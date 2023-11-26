@@ -22,8 +22,9 @@ jobs:
     - name: Install dependencies
       run: |
         CI=false yarn install
+    
     - name: Yarn bump patch
-    - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+      if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
       run: echo "ref=$(yarn version --patch --json|grep -o '[0-9.]*'|tail -1)" >> "$GITHUB_ENV"
       
   
