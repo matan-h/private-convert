@@ -3,6 +3,10 @@ on:
   create:
     tags:
       - v*
+  schedule:
+    - cron: "0 0 1 */2 *"
+  workflow_dispatch:
+    
 
 jobs:
   build:
@@ -19,20 +23,30 @@ jobs:
     - name: Install dependencies
       run: |
         CI=false yarn install
+    
+    - name: Yarn bump patch
+      if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+      run: |
+        git config user.email "git.action@github.com"
+        git config user.name "git.action"
+        echo "ref=$(yarn version --patch --json|grep -o '[0-9.]*'|tail -1)" >> "$GITHUB_ENV"
+      
+  
     - name: Build
       run: |
         CI=false yarn build
     - name: Zip build
       run: |
         zip -r build.zip build/
+    
     - name: Create Release
       uses: ncipollo/release-action@v1
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-          tag: ${{ github.ref }}
+          tag: ${{ env.ref || github.ref }}
           # release_name: Release ${{ github.ref }}
-          body: 'the first working with build.zip artifact' # TODO: changelog, and build only on tag
+          body: "Build for commit : ${{ github.event.head_commit.message || 'automatic' }}" # TODO: changelog, and build only on tag
           draft: false
           prerelease: false
           artifact: "build.zip"
