@@ -1,6 +1,6 @@
 {
   "name": "converter",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "private": true,
   "homepage": "./",
   "dependencies": {
@@ -25,10 +25,8 @@
     "web-vitals": "^2.1.0"
   },
   "scripts": {
-  	"predeploy" : "yarn run build",
-  	"deploy" : "gh-pages -d build",
-
-  	
+    "predeploy": "yarn run build",
+    "deploy": "gh-pages -d build",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
