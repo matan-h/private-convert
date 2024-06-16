@@ -3,7 +3,8 @@ name: Deploy React site to Page
 
 on:
   create:
-    tags
+    tags:
+    - '*'
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
